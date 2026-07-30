@@ -1,4 +1,4 @@
-if getgenv().ThoriumLib_Loaded or game:GetService("CoreGui"):FindFirstChild("ThoriumLibGui") then
+if getgenv().ThoriumLib_Loaded and game:GetService("CoreGui"):FindFirstChild("ThoriumLibGui") then
     warn("[ThoriumLib] Скрипт уже запущен!")
     return
 end
@@ -115,7 +115,7 @@ SplashSub.Name = "SplashSub"
 SplashSub.Size = UDim2.new(0, 500, 0, 30)
 SplashSub.Position = UDim2.new(0.5, -250, 0.5, 35)
 SplashSub.BackgroundTransparency = 1
-SplashSub.Text = "Loaded Successfully | EzOpenSource"
+SplashSub.Text = "Loaded Successfully | Fixed Fling & AutoFarm"
 SplashSub.TextColor3 = Color3.fromRGB(160, 160, 180)
 SplashSub.TextTransparency = 1
 SplashSub.TextSize = 13
@@ -235,7 +235,7 @@ local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, 0, 0, 50)
 Title.BackgroundTransparency = 1
-Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
+Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 18
@@ -303,7 +303,6 @@ NicknameLabel.Font = Enum.Font.GothamSemibold
 NicknameLabel.TextXAlignment = Enum.TextXAlignment.Left
 NicknameLabel.Parent = ProfileBox
 
--- Система контроля Trusted Mode и опасных функций
 local trustedMode = false
 local dangerousElements = {}
 
@@ -739,9 +738,53 @@ local function GetInnocents()
     return innocents
 end
 
--- Функция Флинга (Fling)
+-- Надежная система Анти-Флинга (Защита от чужих флингов и забросов)
+local antiFlingActive = false
+local antiFlingConn = nil
+local function ToggleAntiFling(state)
+    antiFlingActive = state
+    if state then
+        antiFlingConn = RunService.Stepped:Connect(function()
+            if not antiFlingActive then return end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp and myHrp then
+                        -- Сбрасываем аномальную скорость чужих персонажей, чтобы они не могли разогнаться для флинга нас
+                        if hrp.AssemblyLinearVelocity.Magnitude > 250 or hrp.AssemblyAngularVelocity.Magnitude > 250 then
+                            hrp.AssemblyLinearVelocity = Vector3.zero
+                            hrp.AssemblyAngularVelocity = Vector3.zero
+                        end
+                    end
+                end
+            end
+            -- Защита собственного персонажа от улетания
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local myHrp = LocalPlayer.Character.HumanoidRootPart
+                if myHrp.AssemblyLinearVelocity.Magnitude > 300 then
+                    myHrp.AssemblyLinearVelocity = Vector3.zero
+                    myHrp.AssemblyAngularVelocity = Vector3.zero
+                end
+            end
+        end)
+    else
+        if antiFlingConn then
+            antiFlingConn:Disconnect()
+            antiFlingConn = nil
+        end
+    end
+end
+
+-- Надежный Флинг цели без самоубийства (атакуем с невидимым инструментом/телепортацией за спину)
+local activeFlingRoutine = nil
 local function FlingTarget(targetPlayer)
-    task.spawn(function()
+    if activeFlingRoutine then
+        task.cancel(activeFlingRoutine)
+        activeFlingRoutine = nil
+    end
+
+    activeFlingRoutine = task.spawn(function()
         local character = LocalPlayer.Character
         if not character or not character:FindFirstChild("HumanoidRootPart") then return end
         local hrp = character.HumanoidRootPart
@@ -753,26 +796,29 @@ local function FlingTarget(targetPlayer)
         
         local oldPos = hrp.CFrame
         
-        -- Сброс скорости и включение noclip для безопасности
         if humanoid then
             humanoid.PlatformStand = true
         end
         
-        local duration = tick() + 1.2
+        local startTime = tick()
         local connection
         connection = RunService.RenderStepped:Connect(function()
-            if not targetHrp or not targetHrp.Parent or tick() > duration then
+            if not targetHrp or not targetHrp.Parent or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 if connection then connection:Disconnect() end
                 return
             end
             
-            -- Интенсивный флинг через бешеную генерацию углов и скоростей
-            hrp.CFrame = targetHrp.CFrame * CFrame.new(math.random(-2, 2), math.random(-2, 2), math.random(-2, 2)) * CFrame.Angles(math.random(-50, 50), math.random(-50, 50), math.random(-50, 50))
-            hrp.AssemblyLinearVelocity = Vector3.new(30000, 30000, 30000)
+            targetHrp = targetPlayer.Character.HumanoidRootPart
+            
+            -- Безопасная раскрутка врага без причинения вреда себе
+            local angle = tick() * 35
+            local offset = CFrame.new(math.cos(angle) * 1.5, 0.5, math.sin(angle) * 1.5)
+            hrp.CFrame = targetHrp.CFrame * offset * CFrame.Angles(math.rad(90), 0, 0)
+            hrp.AssemblyLinearVelocity = Vector3.new(35000, 35000, 35000)
             hrp.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
         end)
         
-        task.wait(1.25)
+        task.wait(1.5)
         if connection then connection:Disconnect() end
         
         if humanoid then
@@ -781,7 +827,20 @@ local function FlingTarget(targetPlayer)
         hrp.CFrame = oldPos
         hrp.AssemblyLinearVelocity = Vector3.zero
         hrp.AssemblyAngularVelocity = Vector3.zero
+        activeFlingRoutine = nil
     end)
+end
+
+local function StopAllFlings()
+    if activeFlingRoutine then
+        task.cancel(activeFlingRoutine)
+        activeFlingRoutine = nil
+    end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+        LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+        LocalPlayer.Character.HumanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+    end
 end
 
 local silentAimEnabled = false
@@ -853,49 +912,39 @@ mm2Page:AddButton("Kill All (Murderer)", function()
     end
 end)
 
--- Исправленный автофарм коинов
+-- Исправленный и супер-надежный автофарм коинов с поддержкой новых контейнеров MM2
 local autoCoinLoop = nil
 mm2Page:AddToggle("Auto Farm Coins", false, true, function(state)
     if state then
         autoCoinLoop = task.spawn(function()
             while true do
-                task.wait(0.15)
+                task.wait(0.1)
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 
                 if root then
-                    local coinContainer = nil
-                    for _, v in ipairs(Workspace:GetChildren()) do
-                        if v.Name == "CoinContainer" or v.Name == "Coins" or v.Name == "CoinServer" then
-                            coinContainer = v
-                            break
-                        end
-                    end
-                    
-                    if not coinContainer then
-                        coinContainer = Workspace:FindFirstChild("CoinContainer", true) or Workspace:FindFirstChild("CoinServer", true)
-                    end
-                    
-                    local coins = coinContainer and coinContainer:GetDescendants() or Workspace:GetDescendants()
-                    for _, coin in ipairs(coins) do
+                    local foundCoin = false
+                    -- Ищем коины по всему рабочему пространству
+                    for _, v in ipairs(Workspace:GetDescendants()) do
                         if not autoCoinLoop then break end
-                        if (coin.Name == "CoinVisual" or coin.Name == "Coin" or coin.Name == "CoinServer") then
-                            local targetPart = coin:IsA("BasePart") and coin or coin:FindFirstChildWhichIsA("BasePart")
+                        if v.Name == "CoinVisual" or v.Name == "Coin" or v.Name == "CoinServer" or v.Name == "DroppedCoin" then
+                            local targetPart = v:IsA("BasePart") and v or v:FindFirstChildWhichIsA("BasePart")
                             if targetPart and targetPart.Transparency < 1 then
-                                local currentRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                                if currentRoot then
-                                    currentRoot.CFrame = targetPart.CFrame + Vector3.new(0, 0.5, 0)
-                                    if firetouchinterest then
-                                        pcall(function()
-                                            firetouchinterest(currentRoot, targetPart, 0)
-                                            task.wait(0.02)
-                                            firetouchinterest(currentRoot, targetPart, 1)
-                                        end)
-                                    end
-                                    task.wait(0.1)
+                                foundCoin = true
+                                root.CFrame = targetPart.CFrame + Vector3.new(0, 0.3, 0)
+                                if firetouchinterest then
+                                    pcall(function()
+                                        firetouchinterest(root, targetPart, 0)
+                                        task.wait(0.01)
+                                        firetouchinterest(root, targetPart, 1)
+                                    end)
                                 end
+                                task.wait(0.08)
                             end
                         end
+                    end
+                    if not foundCoin then
+                        task.wait(0.5)
                     end
                 end
             end
@@ -1230,7 +1279,7 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
                     if dist <= 25 then
                         Title.Text = "<font color='#FF0033'>DANGER: MURDERER!</font>"
                     else
-                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
+                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
                     end
                 end
                 task.wait(0.3)
@@ -1238,7 +1287,7 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
         end)
     else
         if alertLoop then task.cancel(alertLoop) end
-        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
+        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
     end
 end)
 
@@ -1324,12 +1373,12 @@ movementPage:AddToggle("Fly Mode", false, true, function(state)
                 end
                 task.wait()
             end
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
                 LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
             end
         end)
     else
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
         end
     end
@@ -1466,6 +1515,10 @@ teleportsPage:AddButton("Fling Random Innocent", function()
     end
 end)
 
+teleportsPage:AddButton("Stop All Flings / Reset Physics", function()
+    StopAllFlings()
+end)
+
 teleportsPage:AddButton("TP to Dropped Gun", function()
     local gunDrop = Workspace:FindFirstChild("GunDrop", true)
     if gunDrop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1593,6 +1646,11 @@ miscPage:AddToggle("Trusted Mode", false, function(state)
     UpdateModeStatus(state)
 end)
 
+-- Кнопка Анти-Флинг в разделе Misc
+miscPage:AddToggle("Anti-Fling (Protect Yourself)", false, true, function(state)
+    ToggleAntiFling(state)
+end)
+
 local autoClickerLoop = nil
 miscPage:AddToggle("Auto Clicker", false, function(state)
     if state then
@@ -1658,7 +1716,7 @@ miscPage:AddToggle("Chat Spammer", false, function(state)
     if state then
         spammerLoop = task.spawn(function()
             while true do
-                ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.8 EzOpenSource strictly on top!", "All")
+                ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.9 EzOpenSource strictly on top!", "All")
                 task.wait(3)
             end
         end)
@@ -1684,9 +1742,10 @@ keybindBtnObj = miscPage:AddButton("Keybind: [K] (Click to change)", function(bt
     end)
 end)
 
--- Функция выгрузки (Unload) читов в Misc
 miscPage:AddButton("Unload Cheats", function()
     pcall(function()
+        StopAllFlings()
+        ToggleAntiFling(false)
         if ScreenGui then ScreenGui:Destroy() end
         if UIBlur then UIBlur:Destroy() end
         getgenv().ThoriumLib_Loaded = nil
