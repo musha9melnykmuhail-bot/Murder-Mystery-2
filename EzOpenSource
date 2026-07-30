@@ -1,4 +1,3 @@
--- Thoriumlib v1.1
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -30,16 +29,14 @@ UIBlur.Enabled = true
 UIBlur.Parent = Lighting
 
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local frameWidth = isMobile and 500 or 740
+local frameHeight = isMobile and 310 or 460
+local sidebarWidth = isMobile and 145 or 190
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-if isMobile then
-    MainFrame.Size = UDim2.new(0, 620, 0, 390)
-    MainFrame.Position = UDim2.new(0.5, -310, 0.5, -195)
-else
-    MainFrame.Size = UDim2.new(0, 740, 0, 460)
-    MainFrame.Position = UDim2.new(0.5, -370, 0.5, -230)
-end
+MainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
+MainFrame.Position = UDim2.new(0.5, -frameWidth / 2, 0.5, -frameHeight / 2)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 MainFrame.BackgroundTransparency = 0.25
 MainFrame.BorderSizePixel = 0
@@ -154,7 +151,7 @@ end)
 
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, 190, 1, 0)
+Sidebar.Size = UDim2.new(0, sidebarWidth, 1, 0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 Sidebar.BackgroundTransparency = 0.45
 Sidebar.BorderSizePixel = 0
@@ -179,7 +176,7 @@ Title.BackgroundTransparency = 1
 Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.1</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 18
+Title.TextSize = isMobile and 15 or 18
 Title.Font = Enum.Font.GothamBold
 Title.Parent = Sidebar
 
@@ -197,8 +194,8 @@ TabListLayout.Parent = TabContainer
 
 local ContentArea = Instance.new("Frame")
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -215, 1, -20)
-ContentArea.Position = UDim2.new(0, 205, 0, 10)
+ContentArea.Size = UDim2.new(1, -(sidebarWidth + 25), 1, -20)
+ContentArea.Position = UDim2.new(0, sidebarWidth + 15, 0, 10)
 ContentArea.BackgroundTransparency = 1
 ContentArea.Parent = MainFrame
 
@@ -790,54 +787,67 @@ mm2Page:AddToggle("Auto Dodge Murderer", false, function(state)
     end
 end)
 
-mm2Page:AddButton("Bring All Coins", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        for _, v in ipairs(Workspace:GetDescendants()) do
-            if v.Name == "Coin" and v:IsA("BasePart") then
-                v.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+mm2Page:AddToggle("Expose Murderer Sparkles", false, function(state)
+    local m = GetMurderer()
+    if m and m.Character and m.Character:FindFirstChild("Head") then
+        if state then
+            local s = Instance.new("Sparkles")
+            s.Name = "ExposeSparkles"
+            s.Parent = m.Character.Head
+        else
+            if m.Character.Head:FindFirstChild("ExposeSparkles") then
+                m.Character.Head.ExposeSparkles:Destroy()
             end
         end
     end
 end)
 
-mm2Page:AddButton("Collect Nearest Coin", function()
+mm2Page:AddButton("TP to Safe Spot", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local nearestCoin = nil
-        local minDist = math.huge
-        for _, v in ipairs(Workspace:GetDescendants()) do
-            if v.Name == "Coin" and v:IsA("BasePart") then
-                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Position).Magnitude
-                if dist < minDist then
-                    minDist = dist
-                    nearestCoin = v
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
+    end
+end)
+
+local mm2SpeedLoop = nil
+mm2Page:AddToggle("Murderer Speed Boost", false, function(state)
+    if state then
+        mm2SpeedLoop = RunService.RenderStepped:Connect(function()
+            if GetMurderer() == LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = 40
+            end
+        end)
+    else
+        if mm2SpeedLoop then mm2SpeedLoop:Disconnect() end
+    end
+end)
+
+mm2Page:AddButton("Give Client Fake Gun", function()
+    if LocalPlayer.Backpack then
+        local fakeGun = Instance.new("Tool")
+        fakeGun.Name = "Fake Gun"
+        local handle = Instance.new("Part")
+        handle.Name = "Handle"
+        handle.Size = Vector3.new(1, 1, 2)
+        handle.Color = Color3.fromRGB(0, 0, 255)
+        handle.Parent = fakeGun
+        fakeGun.Parent = LocalPlayer.Backpack
+    end
+end)
+
+local antiKnifeConn = nil
+mm2Page:AddToggle("Anti-Knife Shield", false, function(state)
+    if state then
+        antiKnifeConn = RunService.RenderStepped:Connect(function()
+            local m = GetMurderer()
+            if m and m ~= LocalPlayer and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - m.Character.HumanoidRootPart.Position).Magnitude
+                if dist < 8 then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -15)
                 end
             end
-        end
-        if nearestCoin then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = nearestCoin.CFrame
-        end
-    end
-end)
-
-mm2Page:AddButton("Safe Teleport to Lobby", function()
-    local lobby = Workspace:FindFirstChild("Lobby") or Workspace:FindFirstChild("SpawnLocation", true)
-    if lobby and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = lobby:GetPivot() + Vector3.new(0, 5, 0)
-    end
-end)
-
-mm2Page:AddToggle("Infinite Stamina / Sprint", false, function(state)
-    local runMeta = getmetatable(LocalPlayer)
-    if runMeta and runMeta.__index then
-        -- Safe dummy hook
-    end
-end)
-
-mm2Page:AddButton("Equip Best Knife / Gun", function()
-    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if item.Name:lower():find("knife") or item.Name:lower():find("gun") then
-            item.Parent = LocalPlayer.Character
-        end
+        end)
+    else
+        if antiKnifeConn then antiKnifeConn:Disconnect() end
     end
 end)
 
@@ -1444,7 +1454,7 @@ miscPage:AddSlider("UI Transparency", 20, 80, 25, function(val)
 end)
 
 miscPage:AddButton("Reset Window Position", function()
-    MainFrame.Position = UDim2.new(0.5, -370, 0.5, -230)
+    MainFrame.Position = UDim2.new(0.5, -frameWidth / 2, 0.5, -frameHeight / 2)
 end)
 
 local spammerLoop = nil
@@ -1477,4 +1487,3 @@ keybindBtnObj = miscPage:AddButton("Keybind: [K] (Click to change)", function(bt
         btnRef.Text = "Keybind: [" .. toggleKey.Name .. "] (Click to change)"
     end)
 end)
-```[cite: 4]
