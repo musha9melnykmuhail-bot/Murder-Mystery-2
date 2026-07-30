@@ -28,19 +28,15 @@ UIBlur.Size = 14
 UIBlur.Enabled = true
 UIBlur.Parent = Lighting
 
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local frameWidth = isMobile and 500 or 740
-local frameHeight = isMobile and 310 or 460
-local sidebarWidth = isMobile and 145 or 190
-
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
-MainFrame.Position = UDim2.new(0.5, -frameWidth / 2, 0.5, -frameHeight / 2)
+MainFrame.Size = UDim2.new(0, 740, 0, 460)
+MainFrame.Position = UDim2.new(0.5, -370, 0.5, -230)
 MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 MainFrame.BackgroundTransparency = 0.25
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
@@ -64,6 +60,7 @@ MobileToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MobileToggleBtn.TextSize = 15
 MobileToggleBtn.Font = Enum.Font.GothamBold
 MobileToggleBtn.Active = true
+MobileToggleBtn.Visible = false
 MobileToggleBtn.Parent = ScreenGui
 
 local MobileBtnCorner = Instance.new("UICorner")
@@ -74,6 +71,57 @@ local MobileBtnStroke = Instance.new("UIStroke")
 MobileBtnStroke.Color = Color3.fromRGB(180, 170, 255)
 MobileBtnStroke.Thickness = 1.5
 MobileBtnStroke.Parent = MobileToggleBtn
+
+local SplashFrame = Instance.new("Frame")
+SplashFrame.Name = "ThoriumSplash"
+SplashFrame.Size = UDim2.new(1, 0, 1, 0)
+SplashFrame.Position = UDim2.new(0, 0, 0, 0)
+SplashFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+SplashFrame.BackgroundTransparency = 0
+SplashFrame.BorderSizePixel = 0
+SplashFrame.ZIndex = 100
+SplashFrame.Parent = ScreenGui
+
+local SplashTitle = Instance.new("TextLabel")
+SplashTitle.Name = "SplashTitle"
+SplashTitle.Size = UDim2.new(0, 500, 0, 80)
+SplashTitle.Position = UDim2.new(0.5, -250, 0.5, -40)
+SplashTitle.BackgroundTransparency = 1
+SplashTitle.Text = "THORIUM<font color='#6C5CE7'>LIB</font>"
+SplashTitle.RichText = true
+SplashTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+SplashTitle.TextTransparency = 1
+SplashTitle.TextSize = 42
+SplashTitle.Font = Enum.Font.GothamBold
+SplashTitle.ZIndex = 101
+SplashTitle.Parent = SplashFrame
+
+local SplashSub = Instance.new("TextLabel")
+SplashSub.Name = "SplashSub"
+SplashSub.Size = UDim2.new(0, 500, 0, 30)
+SplashSub.Position = UDim2.new(0.5, -250, 0.5, 35)
+SplashSub.BackgroundTransparency = 1
+SplashSub.Text = "Loaded Successfully"
+SplashSub.TextColor3 = Color3.fromRGB(160, 160, 180)
+SplashSub.TextTransparency = 1
+SplashSub.TextSize = 13
+SplashSub.Font = Enum.Font.GothamMedium
+SplashSub.ZIndex = 101
+SplashSub.Parent = SplashFrame
+
+task.spawn(function()
+    TweenService:Create(SplashTitle, TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    TweenService:Create(SplashSub, TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {TextTransparency = 0.3}):Play()
+    task.wait(2)
+    TweenService:Create(SplashTitle, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextTransparency = 1}):Play()
+    TweenService:Create(SplashSub, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextTransparency = 1}):Play()
+    local splashFade = TweenService:Create(SplashFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {BackgroundTransparency = 1})
+    splashFade:Play()
+    splashFade.Completed:Wait()
+    SplashFrame:Destroy()
+    MainFrame.Visible = true
+    MobileToggleBtn.Visible = true
+end)
 
 local function ToggleMenu()
     MainFrame.Visible = not MainFrame.Visible
@@ -151,7 +199,7 @@ end)
 
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0, sidebarWidth, 1, 0)
+Sidebar.Size = UDim2.new(0, 190, 1, 0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 Sidebar.BackgroundTransparency = 0.45
 Sidebar.BorderSizePixel = 0
@@ -173,10 +221,10 @@ local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, 0, 0, 50)
 Title.BackgroundTransparency = 1
-Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.1</font>"
+Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = isMobile and 15 or 18
+Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
 Title.Parent = Sidebar
 
@@ -194,8 +242,8 @@ TabListLayout.Parent = TabContainer
 
 local ContentArea = Instance.new("Frame")
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -(sidebarWidth + 25), 1, -20)
-ContentArea.Position = UDim2.new(0, sidebarWidth + 15, 0, 10)
+ContentArea.Size = UDim2.new(1, -215, 1, -20)
+ContentArea.Position = UDim2.new(0, 205, 0, 10)
 ContentArea.BackgroundTransparency = 1
 ContentArea.Parent = MainFrame
 
@@ -498,6 +546,23 @@ local function createTab(name, icon)
         fillCorner.CornerRadius = UDim.new(1, 0)
         fillCorner.Parent = fill
 
+        local knob = Instance.new("Frame")
+        knob.Name = "Knob"
+        knob.Size = UDim2.new(0, 14, 0, 14)
+        knob.Position = UDim2.new(1, -7, 0.5, -7)
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.BorderSizePixel = 0
+        knob.Parent = fill
+
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = knob
+
+        local knobStroke = Instance.new("UIStroke")
+        knobStroke.Color = Color3.fromRGB(108, 92, 231)
+        knobStroke.Thickness = 1.5
+        knobStroke.Parent = knob
+
         local trigger = Instance.new("TextButton")
         trigger.Size = UDim2.new(1, 0, 1, 0)
         trigger.BackgroundTransparency = 1
@@ -617,12 +682,12 @@ if getrawmetatable then
     end)
 end
 
-mm2Page:AddToggle("Sheriff Silent Aim", false, function(state)
+mm2Page:AddToggle("[1] Sheriff Silent Aim", false, function(state)
     silentAimEnabled = state
 end)
 
 local autoShootLoop = nil
-mm2Page:AddToggle("Auto Shoot Murderer", false, function(state)
+mm2Page:AddToggle("[2] Auto Shoot Murderer", false, function(state)
     if state then
         autoShootLoop = task.spawn(function()
             while true do
@@ -641,7 +706,7 @@ mm2Page:AddToggle("Auto Shoot Murderer", false, function(state)
     end
 end)
 
-mm2Page:AddButton("Kill All (Murderer)", function()
+mm2Page:AddButton("[3] Kill All (Murderer)", function()
     local knife = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Knife") or (LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Backpack:FindFirstChild("Knife"))
     if knife then
         for _, plr in ipairs(Players:GetPlayers()) do
@@ -654,7 +719,7 @@ mm2Page:AddButton("Kill All (Murderer)", function()
 end)
 
 local autoCoinLoop = nil
-mm2Page:AddToggle("Auto Farm Coins", false, function(state)
+mm2Page:AddToggle("[4] Auto Farm Coins", false, function(state)
     if state then
         autoCoinLoop = task.spawn(function()
             while true do
@@ -685,7 +750,7 @@ mm2Page:AddToggle("Auto Farm Coins", false, function(state)
 end)
 
 local knifeAuraLoop = nil
-mm2Page:AddToggle("Knife Kill Aura", false, function(state)
+mm2Page:AddToggle("[5] Knife Kill Aura", false, function(state)
     if state then
         knifeAuraLoop = task.spawn(function()
             while true do
@@ -709,7 +774,7 @@ mm2Page:AddToggle("Knife Kill Aura", false, function(state)
 end)
 
 local autoGunLoop = nil
-mm2Page:AddToggle("Auto Grab Dropped Gun", false, function(state)
+mm2Page:AddToggle("[6] Auto Grab Dropped Gun", false, function(state)
     if state then
         autoGunLoop = task.spawn(function()
             while true do
@@ -726,7 +791,7 @@ mm2Page:AddToggle("Auto Grab Dropped Gun", false, function(state)
 end)
 
 local hitboxSize = 2
-mm2Page:AddSlider("Player Hitbox Size", 2, 20, 2, function(val)
+mm2Page:AddSlider("[7] Player Hitbox Size", 2, 20, 2, function(val)
     hitboxSize = val
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -736,7 +801,7 @@ mm2Page:AddSlider("Player Hitbox Size", 2, 20, 2, function(val)
     end
 end)
 
-mm2Page:AddButton("Announce Roles in Chat", function()
+mm2Page:AddButton("[8] Announce Roles in Chat", function()
     local m = GetMurderer()
     local s = GetSheriff()
     local msg = "Murderer: " .. (m and m.Name or "Unknown") .. " | Sheriff: " .. (s and s.Name or "None/Dead")
@@ -744,7 +809,7 @@ mm2Page:AddButton("Announce Roles in Chat", function()
 end)
 
 local isSpectating = false
-mm2Page:AddToggle("Spectate Murderer", false, function(state)
+mm2Page:AddToggle("[9] Spectate Murderer", false, function(state)
     isSpectating = state
     if isSpectating then
         task.spawn(function()
@@ -767,7 +832,7 @@ mm2Page:AddToggle("Spectate Murderer", false, function(state)
 end)
 
 local autoDodgeLoop = nil
-mm2Page:AddToggle("Auto Dodge Murderer", false, function(state)
+mm2Page:AddToggle("[10] Auto Dodge Murderer", false, function(state)
     if state then
         autoDodgeLoop = task.spawn(function()
             while true do
@@ -787,72 +852,8 @@ mm2Page:AddToggle("Auto Dodge Murderer", false, function(state)
     end
 end)
 
-mm2Page:AddToggle("Expose Murderer Sparkles", false, function(state)
-    local m = GetMurderer()
-    if m and m.Character and m.Character:FindFirstChild("Head") then
-        if state then
-            local s = Instance.new("Sparkles")
-            s.Name = "ExposeSparkles"
-            s.Parent = m.Character.Head
-        else
-            if m.Character.Head:FindFirstChild("ExposeSparkles") then
-                m.Character.Head.ExposeSparkles:Destroy()
-            end
-        end
-    end
-end)
-
-mm2Page:AddButton("TP to Safe Spot", function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 500, 0)
-    end
-end)
-
-local mm2SpeedLoop = nil
-mm2Page:AddToggle("Murderer Speed Boost", false, function(state)
-    if state then
-        mm2SpeedLoop = RunService.RenderStepped:Connect(function()
-            if GetMurderer() == LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.WalkSpeed = 40
-            end
-        end)
-    else
-        if mm2SpeedLoop then mm2SpeedLoop:Disconnect() end
-    end
-end)
-
-mm2Page:AddButton("Give Client Fake Gun", function()
-    if LocalPlayer.Backpack then
-        local fakeGun = Instance.new("Tool")
-        fakeGun.Name = "Fake Gun"
-        local handle = Instance.new("Part")
-        handle.Name = "Handle"
-        handle.Size = Vector3.new(1, 1, 2)
-        handle.Color = Color3.fromRGB(0, 0, 255)
-        handle.Parent = fakeGun
-        fakeGun.Parent = LocalPlayer.Backpack
-    end
-end)
-
-local antiKnifeConn = nil
-mm2Page:AddToggle("Anti-Knife Shield", false, function(state)
-    if state then
-        antiKnifeConn = RunService.RenderStepped:Connect(function()
-            local m = GetMurderer()
-            if m and m ~= LocalPlayer and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - m.Character.HumanoidRootPart.Position).Magnitude
-                if dist < 8 then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -15)
-                end
-            end
-        end)
-    else
-        if antiKnifeConn then antiKnifeConn:Disconnect() end
-    end
-end)
-
 local roleHighlights = {}
-visualsPage:AddToggle("Role ESP (Murder/Sheriff)", false, function(state)
+visualsPage:AddToggle("[11] Role ESP (Murder/Sheriff)", false, function(state)
     if state then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
@@ -878,7 +879,7 @@ visualsPage:AddToggle("Role ESP (Murder/Sheriff)", false, function(state)
 end)
 
 local innocentHighlights = {}
-visualsPage:AddToggle("Innocents ESP", false, function(state)
+visualsPage:AddToggle("[12] Innocents ESP", false, function(state)
     if state then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr ~= GetMurderer() and plr ~= GetSheriff() and plr.Character then
@@ -897,7 +898,7 @@ visualsPage:AddToggle("Innocents ESP", false, function(state)
 end)
 
 local gunHighlights = {}
-visualsPage:AddToggle("Dropped Gun ESP", false, function(state)
+visualsPage:AddToggle("[13] Dropped Gun ESP", false, function(state)
     if state then
         local gunDrop = Workspace:FindFirstChild("GunDrop", true)
         if gunDrop then
@@ -915,7 +916,7 @@ end)
 
 local tracerAdornment = nil
 local tracerConn = nil
-visualsPage:AddToggle("Tracer to Murderer", false, function(state)
+visualsPage:AddToggle("[14] Tracer to Murderer", false, function(state)
     if state then
         tracerAdornment = Instance.new("LineHandleAdornment")
         tracerAdornment.Name = "MurdererTracer"
@@ -944,7 +945,7 @@ end)
 
 local sheriffTracerAdornment = nil
 local sheriffTracerConn = nil
-visualsPage:AddToggle("Tracer to Sheriff", false, function(state)
+visualsPage:AddToggle("[15] Tracer to Sheriff", false, function(state)
     if state then
         sheriffTracerAdornment = Instance.new("LineHandleAdornment")
         sheriffTracerAdornment.Name = "SheriffTracer"
@@ -972,7 +973,7 @@ visualsPage:AddToggle("Tracer to Sheriff", false, function(state)
 end)
 
 local nameTags = {}
-visualsPage:AddToggle("Name & Distance Tags", false, function(state)
+visualsPage:AddToggle("[16] Name & Distance Tags", false, function(state)
     if state then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
@@ -1002,17 +1003,17 @@ visualsPage:AddToggle("Name & Distance Tags", false, function(state)
 end)
 
 local originalAmbient = Lighting.Ambient
-visualsPage:AddToggle("Fullbright", false, function(state)
+visualsPage:AddToggle("[17] Fullbright", false, function(state)
     Lighting.Ambient = state and Color3.fromRGB(255, 255, 255) or originalAmbient
 end)
 
 local origFogEnd = Lighting.FogEnd
-visualsPage:AddToggle("No Fog", false, function(state)
+visualsPage:AddToggle("[18] No Fog", false, function(state)
     Lighting.FogEnd = state and 9e9 or origFogEnd
 end)
 
 local crosshairFrame = nil
-visualsPage:AddToggle("Screen Crosshair", false, function(state)
+visualsPage:AddToggle("[19] Screen Crosshair", false, function(state)
     if state then
         if not crosshairFrame then
             crosshairFrame = Instance.new("Frame")
@@ -1032,7 +1033,7 @@ visualsPage:AddToggle("Screen Crosshair", false, function(state)
 end)
 
 local coinHighlights = {}
-visualsPage:AddToggle("Coin ESP", false, function(state)
+visualsPage:AddToggle("[20] Coin ESP", false, function(state)
     if state then
         for _, v in ipairs(Workspace:GetDescendants()) do
             if (v.Name == "Coin" or v.Name == "CoinContainer") and v:IsA("BasePart") then
@@ -1051,7 +1052,7 @@ visualsPage:AddToggle("Coin ESP", false, function(state)
 end)
 
 local alertLoop = nil
-visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
+visualsPage:AddToggle("[21] Murderer Proximity Alert", false, function(state)
     if state then
         alertLoop = task.spawn(function()
             while true do
@@ -1061,7 +1062,7 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
                     if dist <= 25 then
                         Title.Text = "<font color='#FF0033'>DANGER: MURDERER!</font>"
                     else
-                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.1</font>"
+                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
                     end
                 end
                 task.wait(0.3)
@@ -1069,12 +1070,12 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
         end)
     else
         if alertLoop then task.cancel(alertLoop) end
-        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.1</font>"
+        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.8</font>"
     end
 end)
 
 local rainbowLoop = nil
-visualsPage:AddToggle("Rainbow Held Tool", false, function(state)
+visualsPage:AddToggle("[22] Rainbow Held Tool", false, function(state)
     if state then
         rainbowLoop = task.spawn(function()
             local hue = 0
@@ -1117,17 +1118,17 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-movementPage:AddSlider("Walk Speed", 16, 120, 16, function(val)
+movementPage:AddSlider("[23] Walk Speed", 16, 120, 16, function(val)
     currentWalkSpeed = val
 end)
 
-movementPage:AddSlider("Jump Power", 50, 250, 50, function(val)
+movementPage:AddSlider("[24] Jump Power", 50, 250, 50, function(val)
     currentJumpPower = val
 end)
 
 local flying = false
 local flySpeed = 60
-movementPage:AddToggle("Fly Mode", false, function(state)
+movementPage:AddToggle("[25] Fly Mode", false, function(state)
     flying = state
     if flying then
         task.spawn(function()
@@ -1168,7 +1169,7 @@ end)
 
 local noclip = false
 local noclipConn = nil
-movementPage:AddToggle("Noclip", false, function(state)
+movementPage:AddToggle("[26] Noclip", false, function(state)
     noclip = state
     if noclip then
         noclipConn = RunService.Stepped:Connect(function()
@@ -1184,7 +1185,7 @@ movementPage:AddToggle("Noclip", false, function(state)
 end)
 
 local bhopConnection = nil
-movementPage:AddToggle("Bunny Hop", false, function(state)
+movementPage:AddToggle("[27] Bunny Hop", false, function(state)
     if state then
         bhopConnection = RunService.RenderStepped:Connect(function()
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -1199,7 +1200,7 @@ movementPage:AddToggle("Bunny Hop", false, function(state)
 end)
 
 local infJumpConnection = nil
-movementPage:AddToggle("Infinite Jump", false, function(state)
+movementPage:AddToggle("[28] Infinite Jump", false, function(state)
     if state then
         infJumpConnection = UserInputService.JumpRequest:Connect(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
@@ -1212,7 +1213,7 @@ movementPage:AddToggle("Infinite Jump", false, function(state)
 end)
 
 local spinConnection = nil
-movementPage:AddToggle("Spinbot", false, function(state)
+movementPage:AddToggle("[29] Spinbot", false, function(state)
     if state then
         spinConnection = RunService.RenderStepped:Connect(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1225,12 +1226,12 @@ movementPage:AddToggle("Spinbot", false, function(state)
 end)
 
 local originalGravity = Workspace.Gravity
-movementPage:AddToggle("Low Gravity (Moon)", false, function(state)
+movementPage:AddToggle("[30] Low Gravity (Moon)", false, function(state)
     Workspace.Gravity = state and 35 or originalGravity
 end)
 
 local fakeLagLoop = nil
-movementPage:AddToggle("Fake Lag / Desync", false, function(state)
+movementPage:AddToggle("[31] Fake Lag / Desync", false, function(state)
     if state then
         fakeLagLoop = task.spawn(function()
             while true do
@@ -1250,7 +1251,7 @@ movementPage:AddToggle("Fake Lag / Desync", false, function(state)
     end
 end)
 
-movementPage:AddToggle("Ghost Mode (Semi-Invis)", false, function(state)
+movementPage:AddToggle("[32] Ghost Mode (Semi-Invis)", false, function(state)
     if LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -1260,42 +1261,42 @@ movementPage:AddToggle("Ghost Mode (Semi-Invis)", false, function(state)
     end
 end)
 
-teleportsPage:AddButton("TP to Murderer", function()
+teleportsPage:AddButton("[33] TP to Murderer", function()
     local m = GetMurderer()
     if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = m.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
     end
 end)
 
-teleportsPage:AddButton("TP to Sheriff", function()
+teleportsPage:AddButton("[34] TP to Sheriff", function()
     local s = GetSheriff()
     if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
     end
 end)
 
-teleportsPage:AddButton("TP to Dropped Gun", function()
+teleportsPage:AddButton("[35] TP to Dropped Gun", function()
     local gunDrop = Workspace:FindFirstChild("GunDrop", true)
     if gunDrop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = gunDrop.CFrame
     end
 end)
 
-teleportsPage:AddButton("TP to Lobby", function()
+teleportsPage:AddButton("[36] TP to Lobby", function()
     local lobby = Workspace:FindFirstChild("Lobby") or Workspace:FindFirstChild("SpawnLocation", true)
     if lobby and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = lobby:GetPivot() + Vector3.new(0, 5, 0)
     end
 end)
 
-teleportsPage:AddButton("TP Above Map (Safe)", function()
+teleportsPage:AddButton("[37] TP Above Map (Safe)", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 80, 0)
     end
 end)
 
 local clickTpConnection = nil
-teleportsPage:AddToggle("Click TP (Ctrl + Click)", false, function(state)
+teleportsPage:AddToggle("[38] Click TP (Ctrl + Click)", false, function(state)
     if state then
         clickTpConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if not gameProcessed and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
@@ -1311,7 +1312,7 @@ teleportsPage:AddToggle("Click TP (Ctrl + Click)", false, function(state)
     end
 end)
 
-automationPage:AddButton("FPS Booster", function()
+automationPage:AddButton("[39] FPS Booster", function()
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") then
             v.Material = Enum.Material.SmoothPlastic
@@ -1325,7 +1326,7 @@ automationPage:AddButton("FPS Booster", function()
 end)
 
 local muteLoop = nil
-automationPage:AddToggle("Mute All Radios", false, function(state)
+automationPage:AddToggle("[40] Mute All Radios", false, function(state)
     if state then
         muteLoop = RunService.RenderStepped:Connect(function()
             for _, sound in ipairs(Workspace:GetDescendants()) do
@@ -1340,7 +1341,7 @@ automationPage:AddToggle("Mute All Radios", false, function(state)
 end)
 
 local xrayEnabled = false
-automationPage:AddToggle("Wall X-Ray", false, function(state)
+automationPage:AddToggle("[41] Wall X-Ray", false, function(state)
     xrayEnabled = state
     for _, part in ipairs(Workspace:GetDescendants()) do
         if part:IsA("BasePart") and not part.Parent:FindFirstChild("Humanoid") then
@@ -1350,7 +1351,7 @@ automationPage:AddToggle("Wall X-Ray", false, function(state)
 end)
 
 local autoRejoinConn = nil
-automationPage:AddToggle("Auto Rejoin on Error", false, function(state)
+automationPage:AddToggle("[42] Auto Rejoin on Error", false, function(state)
     if state then
         autoRejoinConn = game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
             if child.Name == "ErrorPrompt" then
@@ -1362,7 +1363,7 @@ automationPage:AddToggle("Auto Rejoin on Error", false, function(state)
     end
 end)
 
-automationPage:AddButton("Give Client Fake Knife", function()
+automationPage:AddButton("[43] Give Client Fake Knife", function()
     if LocalPlayer.Backpack then
         local fakeKnife = Instance.new("Tool")
         fakeKnife.Name = "Fake Knife"
@@ -1375,7 +1376,7 @@ automationPage:AddButton("Give Client Fake Knife", function()
     end
 end)
 
-automationPage:AddButton("Destroy Map Traps / Hazards", function()
+automationPage:AddButton("[53] Destroy Map Traps / Hazards", function()
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v.Name:lower():find("trap") or v.Name:lower():find("hazard") then
             v:Destroy()
@@ -1384,7 +1385,7 @@ automationPage:AddButton("Destroy Map Traps / Hazards", function()
 end)
 
 local antiStunConn = nil
-automationPage:AddToggle("Anti-Stun / Freeze Bypass", false, function(state)
+automationPage:AddToggle("[54] Anti-Stun / Freeze Bypass", false, function(state)
     if state then
         antiStunConn = RunService.RenderStepped:Connect(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
@@ -1398,7 +1399,7 @@ automationPage:AddToggle("Anti-Stun / Freeze Bypass", false, function(state)
 end)
 
 local autoClickerLoop = nil
-miscPage:AddToggle("Auto Clicker", false, function(state)
+miscPage:AddToggle("[44] Auto Clicker", false, function(state)
     if state then
         autoClickerLoop = task.spawn(function()
             while true do
@@ -1412,7 +1413,7 @@ miscPage:AddToggle("Auto Clicker", false, function(state)
 end)
 
 local antiAfkConnection = nil
-miscPage:AddToggle("Anti-AFK Disconnect", false, function(state)
+miscPage:AddToggle("[45] Anti-AFK Disconnect", false, function(state)
     if state then
         antiAfkConnection = LocalPlayer.Idled:Connect(function()
             VirtualUser:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
@@ -1424,17 +1425,17 @@ miscPage:AddToggle("Anti-AFK Disconnect", false, function(state)
     end
 end)
 
-miscPage:AddSlider("Camera FOV", 70, 120, 70, function(val)
+miscPage:AddSlider("[46] Camera FOV", 70, 120, 70, function(val)
     Workspace.CurrentCamera.FieldOfView = val
 end)
 
-miscPage:AddButton("Copy Job ID to Clipboard", function()
+miscPage:AddButton("[47] Copy Job ID to Clipboard", function()
     if setclipboard then
         setclipboard(tostring(game.JobId))
     end
 end)
 
-miscPage:AddButton("Server Hop", function()
+miscPage:AddButton("[48] Server Hop", function()
     local api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
     local success, result = pcall(function() return HttpService:JSONDecode(game:HttpGet(api)) end)
     if success and result and result.data then
@@ -1447,22 +1448,22 @@ miscPage:AddButton("Server Hop", function()
     end
 end)
 
-miscPage:AddSlider("UI Transparency", 20, 80, 25, function(val)
+miscPage:AddSlider("[49] UI Transparency", 20, 80, 25, function(val)
     local alpha = val / 100
     MainFrame.BackgroundTransparency = alpha
     Sidebar.BackgroundTransparency = alpha + 0.15
 end)
 
-miscPage:AddButton("Reset Window Position", function()
-    MainFrame.Position = UDim2.new(0.5, -frameWidth / 2, 0.5, -frameHeight / 2)
+miscPage:AddButton("[50] Reset Window Position", function()
+    MainFrame.Position = UDim2.new(0.5, -370, 0.5, -230)
 end)
 
 local spammerLoop = nil
-miscPage:AddToggle("Chat Spammer", false, function(state)
+miscPage:AddToggle("[51] Chat Spammer", false, function(state)
     if state then
         spammerLoop = task.spawn(function()
             while true do
-                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.1 strictly on top!", "All")
+                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.8 strictly on top!", "All")
                 task.wait(3)
             end
         end)
@@ -1471,12 +1472,12 @@ miscPage:AddToggle("Chat Spammer", false, function(state)
     end
 end)
 
-miscPage:AddSlider("Max Camera Zoom", 12.8, 250, 12.8, function(val)
+miscPage:AddSlider("[52] Max Camera Zoom", 12.8, 250, 12.8, function(val)
     LocalPlayer.CameraMaxZoomDistance = val
 end)
 
 local keybindBtnObj
-keybindBtnObj = miscPage:AddButton("Keybind: [K] (Click to change)", function(btnRef)
+keybindBtnObj = miscPage:AddButton("[55] Keybind: [K] (Click to change)", function(btnRef)
     isListeningForKey = true
     btnRef.Text = "Press ANY key on keyboard..."
     
@@ -1484,6 +1485,6 @@ keybindBtnObj = miscPage:AddButton("Keybind: [K] (Click to change)", function(bt
         while isListeningForKey do
             task.wait(0.1)
         end
-        btnRef.Text = "Keybind: [" .. toggleKey.Name .. "] (Click to change)"
+        btnRef.Text = "[55] Keybind: [" .. toggleKey.Name .. "] (Click to change)"
     end)
 end)
