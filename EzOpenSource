@@ -115,7 +115,7 @@ SplashSub.Name = "SplashSub"
 SplashSub.Size = UDim2.new(0, 500, 0, 30)
 SplashSub.Position = UDim2.new(0.5, -250, 0.5, 35)
 SplashSub.BackgroundTransparency = 1
-SplashSub.Text = "Loaded Successfully | Fixed Fling & AutoFarm"
+SplashSub.Text = "Auto Farm Overhauled & Fully Working"
 SplashSub.TextColor3 = Color3.fromRGB(160, 160, 180)
 SplashSub.TextTransparency = 1
 SplashSub.TextSize = 13
@@ -235,7 +235,7 @@ local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, 0, 0, 50)
 Title.BackgroundTransparency = 1
-Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
+Title.Text = "Thoriumlib <font color='#6C5CE7'>v2.0</font>"
 Title.RichText = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 18
@@ -738,7 +738,7 @@ local function GetInnocents()
     return innocents
 end
 
--- Надежная система Анти-Флинга (Защита от чужих флингов и забросов)
+-- Анти-Флинг Защита
 local antiFlingActive = false
 local antiFlingConn = nil
 local function ToggleAntiFling(state)
@@ -749,9 +749,7 @@ local function ToggleAntiFling(state)
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= LocalPlayer and plr.Character then
                     local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                    local myHrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp and myHrp then
-                        -- Сбрасываем аномальную скорость чужих персонажей, чтобы они не могли разогнаться для флинга нас
+                    if hrp then
                         if hrp.AssemblyLinearVelocity.Magnitude > 250 or hrp.AssemblyAngularVelocity.Magnitude > 250 then
                             hrp.AssemblyLinearVelocity = Vector3.zero
                             hrp.AssemblyAngularVelocity = Vector3.zero
@@ -759,7 +757,6 @@ local function ToggleAntiFling(state)
                     end
                 end
             end
-            -- Защита собственного персонажа от улетания
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local myHrp = LocalPlayer.Character.HumanoidRootPart
                 if myHrp.AssemblyLinearVelocity.Magnitude > 300 then
@@ -776,7 +773,7 @@ local function ToggleAntiFling(state)
     end
 end
 
--- Надежный Флинг цели без самоубийства (атакуем с невидимым инструментом/телепортацией за спину)
+-- Безопасный Флинг
 local activeFlingRoutine = nil
 local function FlingTarget(targetPlayer)
     if activeFlingRoutine then
@@ -795,12 +792,8 @@ local function FlingTarget(targetPlayer)
         local targetHrp = targetChar.HumanoidRootPart
         
         local oldPos = hrp.CFrame
+        if humanoid then humanoid.PlatformStand = true end
         
-        if humanoid then
-            humanoid.PlatformStand = true
-        end
-        
-        local startTime = tick()
         local connection
         connection = RunService.RenderStepped:Connect(function()
             if not targetHrp or not targetHrp.Parent or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -809,8 +802,6 @@ local function FlingTarget(targetPlayer)
             end
             
             targetHrp = targetPlayer.Character.HumanoidRootPart
-            
-            -- Безопасная раскрутка врага без причинения вреда себе
             local angle = tick() * 35
             local offset = CFrame.new(math.cos(angle) * 1.5, 0.5, math.sin(angle) * 1.5)
             hrp.CFrame = targetHrp.CFrame * offset * CFrame.Angles(math.rad(90), 0, 0)
@@ -821,9 +812,7 @@ local function FlingTarget(targetPlayer)
         task.wait(1.5)
         if connection then connection:Disconnect() end
         
-        if humanoid then
-            humanoid.PlatformStand = false
-        end
+        if humanoid then humanoid.PlatformStand = false end
         hrp.CFrame = oldPos
         hrp.AssemblyLinearVelocity = Vector3.zero
         hrp.AssemblyAngularVelocity = Vector3.zero
@@ -912,39 +901,72 @@ mm2Page:AddButton("Kill All (Murderer)", function()
     end
 end)
 
--- Исправленный и супер-надежный автофарм коинов с поддержкой новых контейнеров MM2
+-------------------------------------------------------------------------
+-- УЛЬТРА-ОПТИМИЗИРОВАННЫЙ И ИСПРАВЛЕННЫЙ АВТО-ФАРМ КОИНОВ (MM2 OVERHAUL)
+-------------------------------------------------------------------------
 local autoCoinLoop = nil
-mm2Page:AddToggle("Auto Farm Coins", false, true, function(state)
+local function FindCoinContainer()
+    return Workspace:FindFirstChild("Normal") and Workspace.Normal:FindFirstChild("CoinContainer")
+        or Workspace:FindFirstChild("CoinContainer")
+        or Workspace
+end
+
+mm2Page:AddToggle("Auto Farm Coins (Overhauled)", false, true, function(state)
     if state then
         autoCoinLoop = task.spawn(function()
             while true do
-                task.wait(0.1)
+                task.wait(0.05)
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
                 
-                if root then
-                    local foundCoin = false
-                    -- Ищем коины по всему рабочему пространству
-                    for _, v in ipairs(Workspace:GetDescendants()) do
-                        if not autoCoinLoop then break end
-                        if v.Name == "CoinVisual" or v.Name == "Coin" or v.Name == "CoinServer" or v.Name == "DroppedCoin" then
-                            local targetPart = v:IsA("BasePart") and v or v:FindFirstChildWhichIsA("BasePart")
-                            if targetPart and targetPart.Transparency < 1 then
-                                foundCoin = true
-                                root.CFrame = targetPart.CFrame + Vector3.new(0, 0.3, 0)
-                                if firetouchinterest then
-                                    pcall(function()
-                                        firetouchinterest(root, targetPart, 0)
-                                        task.wait(0.01)
-                                        firetouchinterest(root, targetPart, 1)
-                                    end)
-                                end
-                                task.wait(0.08)
+                if root and hum and hum.Health > 0 then
+                    local container = FindCoinContainer()
+                    local coinsToCollect = {}
+
+                    -- Динамический сбор существующих и активных монет
+                    for _, v in ipairs(container:GetDescendants()) do
+                        if (v.Name == "CoinVisual" or v.Name == "Coin" or v.Name == "CoinServer" or v.Name == "DroppedCoin") then
+                            local part = v:IsA("BasePart") and v or v:FindFirstChildWhichIsA("BasePart")
+                            if part and part.Transparency < 1 and part:IsDescendantOf(Workspace) then
+                                table.insert(coinsToCollect, part)
                             end
                         end
                     end
-                    if not foundCoin then
-                        task.wait(0.5)
+
+                    -- Сортировка по дистанции для исключения хаотичных прыжков по всей карте
+                    table.sort(coinsToCollect, function(a, b)
+                        return (root.Position - a.Position).Magnitude < (root.Position - b.Position).Magnitude
+                    end)
+
+                    -- Собираем монеты в пошаговом цикле
+                    for _, coinPart in ipairs(coinsToCollect) do
+                        if not autoCoinLoop then break end
+                        if coinPart and coinPart.Parent and coinPart.Transparency < 1 then
+                            
+                            -- Отключение коллизии тела, чтобы персонаж не втыкался в пол и текстуры
+                            for _, p in ipairs(char:GetDescendants()) do
+                                if p:IsA("BasePart") then p.CanCollide = false end
+                            end
+
+                            -- Обнуляем вектор падения/полета во избежание срабатывания античита
+                            root.AssemblyLinearVelocity = Vector3.zero
+                            root.AssemblyAngularVelocity = Vector3.zero
+
+                            -- Мгновенная и точная позиция над коином
+                            root.CFrame = coinPart.CFrame + Vector3.new(0, 0.2, 0)
+
+                            -- Прямая симуляция подбора (TouchInterest Trigger)
+                            if firetouchinterest then
+                                pcall(function()
+                                    firetouchinterest(root, coinPart, 0)
+                                    task.wait(0.01)
+                                    firetouchinterest(root, coinPart, 1)
+                                end)
+                            end
+
+                            task.wait(0.1) -- Время регистраций сессии коина сервером MM2
+                        end
                     end
                 end
             end
@@ -953,6 +975,14 @@ mm2Page:AddToggle("Auto Farm Coins", false, true, function(state)
         if autoCoinLoop then 
             task.cancel(autoCoinLoop)
             autoCoinLoop = nil
+        end
+        -- Возвращаем коллизию персонажа
+        if LocalPlayer.Character then
+            for _, p in ipairs(LocalPlayer.Character:GetDescendants()) do
+                if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then 
+                    p.CanCollide = true 
+                end
+            end
         end
     end
 end)
@@ -1279,7 +1309,7 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
                     if dist <= 25 then
                         Title.Text = "<font color='#FF0033'>DANGER: MURDERER!</font>"
                     else
-                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
+                        Title.Text = "Thoriumlib <font color='#6C5CE7'>v2.0</font>"
                     end
                 end
                 task.wait(0.3)
@@ -1287,7 +1317,7 @@ visualsPage:AddToggle("Murderer Proximity Alert", false, function(state)
         end)
     else
         if alertLoop then task.cancel(alertLoop) end
-        Title.Text = "Thoriumlib <font color='#6C5CE7'>v1.9</font>"
+        Title.Text = "Thoriumlib <font color='#6C5CE7'>v2.0</font>"
     end
 end)
 
@@ -1478,7 +1508,6 @@ movementPage:AddToggle("Ghost Mode (Semi-Invis)", false, function(state)
     end
 end)
 
--- Телепорты и функции Флинга
 teleportsPage:AddButton("TP to Murderer", function()
     local m = GetMurderer()
     if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1646,7 +1675,6 @@ miscPage:AddToggle("Trusted Mode", false, function(state)
     UpdateModeStatus(state)
 end)
 
--- Кнопка Анти-Флинг в разделе Misc
 miscPage:AddToggle("Anti-Fling (Protect Yourself)", false, true, function(state)
     ToggleAntiFling(state)
 end)
@@ -1716,7 +1744,7 @@ miscPage:AddToggle("Chat Spammer", false, function(state)
     if state then
         spammerLoop = task.spawn(function()
             while true do
-                ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.9 EzOpenSource strictly on top!", "All")
+                ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v2.0 EzOpenSource strictly on top!", "All")
                 task.wait(3)
             end
         end)
