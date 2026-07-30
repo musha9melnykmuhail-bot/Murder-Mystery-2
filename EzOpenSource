@@ -1,5 +1,5 @@
 if getgenv().ThoriumLib_Loaded and game:GetService("CoreGui"):FindFirstChild("ThoriumLibGui") then
-    warn("[ThoriumLib] Скрипт уже запущен!")
+    warn("[ThoriumLib] & EzOpenSource")
     return
 end
 getgenv().ThoriumLib_Loaded = true
