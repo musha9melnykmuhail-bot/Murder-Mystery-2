@@ -1,11 +1,10 @@
--- Защита от повторного запуска
 if getgenv().ThoriumLib_Loaded or game:GetService("CoreGui"):FindFirstChild("ThoriumLibGui") then
     warn("[ThoriumLib] Скрипт уже запущен!")
     return
 end
 getgenv().ThoriumLib_Loaded = true
 
--- Проверка Place ID (Murder Mystery 2: 142823291)
+-- Place ID (Murder Mystery 2: 142823291)
 local TARGET_PLACE_ID = 142823291
 if game.PlaceId ~= TARGET_PLACE_ID then
     warn("[ThoriumLib] Неверный Place ID (" .. tostring(game.PlaceId) .. ")! Ожидался: " .. tostring(TARGET_PLACE_ID))
@@ -21,6 +20,7 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
@@ -115,7 +115,7 @@ SplashSub.Name = "SplashSub"
 SplashSub.Size = UDim2.new(0, 500, 0, 30)
 SplashSub.Position = UDim2.new(0.5, -250, 0.5, 35)
 SplashSub.BackgroundTransparency = 1
-SplashSub.Text = "Loaded Successfully"
+SplashSub.Text = "Loaded Successfully | EzOpenSource"
 SplashSub.TextColor3 = Color3.fromRGB(160, 160, 180)
 SplashSub.TextTransparency = 1
 SplashSub.TextSize = 13
@@ -727,6 +727,63 @@ local function GetSheriff()
     return nil
 end
 
+local function GetInnocents()
+    local innocents = {}
+    local m = GetMurderer()
+    local s = GetSheriff()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr ~= m and plr ~= s and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(innocents, plr)
+        end
+    end
+    return innocents
+end
+
+-- Функция Флинга (Fling)
+local function FlingTarget(targetPlayer)
+    task.spawn(function()
+        local character = LocalPlayer.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = character.HumanoidRootPart
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        
+        local targetChar = targetPlayer.Character
+        if not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then return end
+        local targetHrp = targetChar.HumanoidRootPart
+        
+        local oldPos = hrp.CFrame
+        
+        -- Сброс скорости и включение noclip для безопасности
+        if humanoid then
+            humanoid.PlatformStand = true
+        end
+        
+        local duration = tick() + 1.2
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if not targetHrp or not targetHrp.Parent or tick() > duration then
+                if connection then connection:Disconnect() end
+                return
+            end
+            
+            -- Интенсивный флинг через бешеную генерацию углов и скоростей
+            hrp.CFrame = targetHrp.CFrame * CFrame.new(math.random(-2, 2), math.random(-2, 2), math.random(-2, 2)) * CFrame.Angles(math.random(-50, 50), math.random(-50, 50), math.random(-50, 50))
+            hrp.AssemblyLinearVelocity = Vector3.new(30000, 30000, 30000)
+            hrp.AssemblyAngularVelocity = Vector3.new(50000, 50000, 50000)
+        end)
+        
+        task.wait(1.25)
+        if connection then connection:Disconnect() end
+        
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        hrp.CFrame = oldPos
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+    end)
+end
+
 local silentAimEnabled = false
 if getrawmetatable then
     local gmt = getrawmetatable(game)
@@ -763,13 +820,12 @@ mm2Page:AddToggle("Auto Shoot Murderer", false, true, function(state)
                 if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and char then
                     local gun = char:FindFirstChild("Gun") or (LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Backpack:FindFirstChild("Gun"))
                     if gun then
-                        -- Достаем пушку из инвентаря если она не в руках
                         if gun.Parent == LocalPlayer.Backpack and hum then
                             hum:EquipTool(gun)
                             task.wait(0.1)
                         end
                         
-                        local shootEvent = gun:FindFirstChild("Shoot") or game:GetService("ReplicatedStorage"):FindFirstChild("Shoot", true)
+                        local shootEvent = gun:FindFirstChild("Shoot") or ReplicatedStorage:FindFirstChild("Shoot", true)
                         if shootEvent and m.Character:FindFirstChild("HumanoidRootPart") then
                             shootEvent:FireServer(m.Character.HumanoidRootPart.Position)
                         end
@@ -797,37 +853,47 @@ mm2Page:AddButton("Kill All (Murderer)", function()
     end
 end)
 
+-- Исправленный автофарм коинов
 local autoCoinLoop = nil
 mm2Page:AddToggle("Auto Farm Coins", false, true, function(state)
     if state then
         autoCoinLoop = task.spawn(function()
             while true do
-                task.wait(0.1)
+                task.wait(0.15)
                 local char = LocalPlayer.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 
                 if root then
                     local coinContainer = nil
-                    for _, v in ipairs(Workspace:GetDescendants()) do
-                        if v.Name == "CoinContainer" or v.Name == "CoinServer" then
+                    for _, v in ipairs(Workspace:GetChildren()) do
+                        if v.Name == "CoinContainer" or v.Name == "Coins" or v.Name == "CoinServer" then
                             coinContainer = v
                             break
                         end
                     end
                     
-                    local coins = coinContainer and coinContainer:GetChildren() or Workspace:GetChildren()
+                    if not coinContainer then
+                        coinContainer = Workspace:FindFirstChild("CoinContainer", true) or Workspace:FindFirstChild("CoinServer", true)
+                    end
+                    
+                    local coins = coinContainer and coinContainer:GetDescendants() or Workspace:GetDescendants()
                     for _, coin in ipairs(coins) do
                         if not autoCoinLoop then break end
-                        if coin:IsA("BasePart") and (coin.Name == "Coin" or coin.Name == "CoinServer") and coin.Transparency < 0.9 then
-                            local currentRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            if currentRoot then
-                                currentRoot.CFrame = coin.CFrame
-                                if coin:FindFirstChild("TouchInterest") then
-                                    firetouchinterest(currentRoot, coin, 0)
-                                    task.wait(0.05)
-                                    firetouchinterest(currentRoot, coin, 1)
+                        if (coin.Name == "CoinVisual" or coin.Name == "Coin" or coin.Name == "CoinServer") then
+                            local targetPart = coin:IsA("BasePart") and coin or coin:FindFirstChildWhichIsA("BasePart")
+                            if targetPart and targetPart.Transparency < 1 then
+                                local currentRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                if currentRoot then
+                                    currentRoot.CFrame = targetPart.CFrame + Vector3.new(0, 0.5, 0)
+                                    if firetouchinterest then
+                                        pcall(function()
+                                            firetouchinterest(currentRoot, targetPart, 0)
+                                            task.wait(0.02)
+                                            firetouchinterest(currentRoot, targetPart, 1)
+                                        end)
+                                    end
+                                    task.wait(0.1)
                                 end
-                                task.wait(0.12)
                             end
                         end
                     end
@@ -904,7 +970,7 @@ mm2Page:AddButton("Announce Roles in Chat", function()
     local m = GetMurderer()
     local s = GetSheriff()
     local msg = "Murderer: " .. (m and m.Name or "Unknown") .. " | Sheriff: " .. (s and s.Name or "None/Dead")
-    game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer(msg, "All")
+    ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer(msg, "All")
 end)
 
 local isSpectating = false
@@ -1306,7 +1372,7 @@ movementPage:AddToggle("Infinite Jump", false, function(state)
     if state then
         infJumpConnection = UserInputService.JumpRequest:Connect(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+                LocalPlayer.Character.HumanoidRootPart.CFrame += Vector3.new(0, 4, 0)
             end
         end)
     else
@@ -1363,6 +1429,7 @@ movementPage:AddToggle("Ghost Mode (Semi-Invis)", false, function(state)
     end
 end)
 
+-- Телепорты и функции Флинга
 teleportsPage:AddButton("TP to Murderer", function()
     local m = GetMurderer()
     if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1374,6 +1441,28 @@ teleportsPage:AddButton("TP to Sheriff", function()
     local s = GetSheriff()
     if s and s.Character and s.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = s.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+    end
+end)
+
+teleportsPage:AddButton("Fling Murderer", function()
+    local m = GetMurderer()
+    if m then
+        FlingTarget(m)
+    end
+end)
+
+teleportsPage:AddButton("Fling Sheriff", function()
+    local s = GetSheriff()
+    if s then
+        FlingTarget(s)
+    end
+end)
+
+teleportsPage:AddButton("Fling Random Innocent", function()
+    local innocents = GetInnocents()
+    if #innocents > 0 then
+        local randomInnocent = innocents[math.random(1, #innocents)]
+        FlingTarget(randomInnocent)
     end
 end)
 
@@ -1569,7 +1658,7 @@ miscPage:AddToggle("Chat Spammer", false, function(state)
     if state then
         spammerLoop = task.spawn(function()
             while true do
-                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.8 strictly on top!", "All")
+                ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.8 EzOpenSource strictly on top!", "All")
                 task.wait(3)
             end
         end)
@@ -1592,5 +1681,14 @@ keybindBtnObj = miscPage:AddButton("Keybind: [K] (Click to change)", function(bt
             task.wait(0.1)
         end
         btnRef.Text = "Keybind: [" .. toggleKey.Name .. "] (Click to change)"
+    end)
+end)
+
+-- Функция выгрузки (Unload) читов в Misc
+miscPage:AddButton("Unload Cheats", function()
+    pcall(function()
+        if ScreenGui then ScreenGui:Destroy() end
+        if UIBlur then UIBlur:Destroy() end
+        getgenv().ThoriumLib_Loaded = nil
     end)
 end)
