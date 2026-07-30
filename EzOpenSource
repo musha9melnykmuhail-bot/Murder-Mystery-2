@@ -1,3 +1,17 @@
+-- Защита от повторного запуска
+if getgenv().ThoriumLib_Loaded or game:GetService("CoreGui"):FindFirstChild("ThoriumLibGui") then
+    warn("[ThoriumLib] Скрипт уже запущен!")
+    return
+end
+getgenv().ThoriumLib_Loaded = true
+
+-- Проверка Place ID (Murder Mystery 2: 142823291)
+local TARGET_PLACE_ID = 142823291
+if game.PlaceId ~= TARGET_PLACE_ID then
+    warn("[ThoriumLib] Неверный Place ID (" .. tostring(game.PlaceId) .. ")! Ожидался: " .. tostring(TARGET_PLACE_ID))
+    return
+end
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -289,17 +303,30 @@ NicknameLabel.Font = Enum.Font.GothamSemibold
 NicknameLabel.TextXAlignment = Enum.TextXAlignment.Left
 NicknameLabel.Parent = ProfileBox
 
-local IDLabel = Instance.new("TextLabel")
-IDLabel.Name = "ID"
-IDLabel.Size = UDim2.new(1, -50, 0, 14)
-IDLabel.Position = UDim2.new(0, 48, 0, 24)
-IDLabel.BackgroundTransparency = 1
-IDLabel.Text = "ID: " .. LocalPlayer.UserId
-IDLabel.TextColor3 = Color3.fromRGB(130, 130, 145)
-IDLabel.TextSize = 10
-IDLabel.Font = Enum.Font.Gotham
-IDLabel.TextXAlignment = Enum.TextXAlignment.Left
-IDLabel.Parent = ProfileBox
+-- Трастед мод состояние и динамический статус-лейбл
+local trustedMode = false
+
+local ModeLabel = Instance.new("TextLabel")
+ModeLabel.Name = "ModeLabel"
+ModeLabel.Size = UDim2.new(1, -50, 0, 14)
+ModeLabel.Position = UDim2.new(0, 48, 0, 24)
+ModeLabel.BackgroundTransparency = 1
+ModeLabel.RichText = true
+ModeLabel.Text = "<font color='#FF4D4D'>Unsafe Mode</font>"
+ModeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ModeLabel.TextSize = 10
+ModeLabel.Font = Enum.Font.GothamSemibold
+ModeLabel.TextXAlignment = Enum.TextXAlignment.Left
+ModeLabel.Parent = ProfileBox
+
+local function UpdateModeStatus(state)
+    trustedMode = state
+    if state then
+        ModeLabel.Text = "<font color='#4EFE8C'>Safe Mode</font>"
+    else
+        ModeLabel.Text = "<font color='#FF4D4D'>Unsafe Mode</font>"
+    end
+end
 
 local tabs = {}
 
@@ -1396,6 +1423,10 @@ automationPage:AddToggle("Anti-Stun / Freeze Bypass", false, function(state)
     else
         if antiStunConn then antiStunConn:Disconnect() end
     end
+end)
+
+miscPage:AddToggle("Trusted Mode", false, function(state)
+    UpdateModeStatus(state)
 end)
 
 local autoClickerLoop = nil
