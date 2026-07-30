@@ -303,8 +303,9 @@ NicknameLabel.Font = Enum.Font.GothamSemibold
 NicknameLabel.TextXAlignment = Enum.TextXAlignment.Left
 NicknameLabel.Parent = ProfileBox
 
--- Трастед мод состояние и динамический статус-лейбл
+-- Система контроля Trusted Mode и опасных функций
 local trustedMode = false
+local dangerousElements = {}
 
 local ModeLabel = Instance.new("TextLabel")
 ModeLabel.Name = "ModeLabel"
@@ -323,8 +324,17 @@ local function UpdateModeStatus(state)
     trustedMode = state
     if state then
         ModeLabel.Text = "<font color='#4EFE8C'>Safe Mode</font>"
+        for _, elem in ipairs(dangerousElements) do
+            if elem.getState() then
+                elem.setState(false)
+            end
+            elem.setYellow(true)
+        end
     else
         ModeLabel.Text = "<font color='#FF4D4D'>Unsafe Mode</font>"
+        for _, elem in ipairs(dangerousElements) do
+            elem.setYellow(false)
+        end
     end
 end
 
@@ -449,7 +459,12 @@ local function createTab(name, icon)
         return (self.ItemCount % 2 == 1) and self.LeftCol or self.RightCol
     end
 
-    function tabObj:AddToggle(text, default, callback)
+    function tabObj:AddToggle(text, default, isDangerous, callback)
+        if type(isDangerous) == "function" then
+            callback = isDangerous
+            isDangerous = false
+        end
+
         local targetParent = self:GetNextParent()
         local state = default or false
         
@@ -473,7 +488,7 @@ local function createTab(name, icon)
         label.Position = UDim2.new(0, 10, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = text
-        label.TextColor3 = Color3.fromRGB(220, 220, 230)
+        label.TextColor3 = isDangerous and (trustedMode and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(220, 220, 230)) or Color3.fromRGB(220, 220, 230)
         label.TextSize = 11
         label.Font = Enum.Font.GothamMedium
         label.TextXAlignment = Enum.TextXAlignment.Left
@@ -501,8 +516,13 @@ local function createTab(name, icon)
         circleCorner.CornerRadius = UDim.new(1, 0)
         circleCorner.Parent = circle
 
-        btn.MouseButton1Click:Connect(function()
-            state = not state
+        local function applyToggle(newState)
+            if trustedMode and isDangerous and newState == true then
+                warn("[ThoriumLib]: Функция '" .. text .. "' заблокирована в Trusted Mode!")
+                return
+            end
+
+            state = newState
             TweenService:Create(btn, TweenInfo.new(0.2), {
                 BackgroundColor3 = state and Color3.fromRGB(108, 92, 231) or Color3.fromRGB(40, 40, 52)
             }):Play()
@@ -510,7 +530,24 @@ local function createTab(name, icon)
                 Position = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
             }):Play()
             task.spawn(callback, state)
+        end
+
+        btn.MouseButton1Click:Connect(function()
+            applyToggle(not state)
         end)
+
+        if isDangerous then
+            table.insert(dangerousElements, {
+                getState = function() return state end,
+                setState = applyToggle,
+                setYellow = function(yellow)
+                    label.TextColor3 = yellow and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(220, 220, 230)
+                end
+            })
+            if trustedMode then
+                label.TextColor3 = Color3.fromRGB(255, 215, 0)
+            end
+        end
     end
 
     function tabObj:AddSlider(text, min, max, default, callback)
@@ -709,27 +746,42 @@ if getrawmetatable then
     end)
 end
 
-mm2Page:AddToggle("Sheriff Silent Aim", false, function(state)
+mm2Page:AddToggle("Sheriff Silent Aim", false, true, function(state)
     silentAimEnabled = state
 end)
 
 local autoShootLoop = nil
-mm2Page:AddToggle("Auto Shoot Murderer", false, function(state)
+mm2Page:AddToggle("Auto Shoot Murderer", false, true, function(state)
     if state then
         autoShootLoop = task.spawn(function()
             while true do
+                task.wait(0.2)
                 local m = GetMurderer()
-                if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Gun") then
-                    local gun = LocalPlayer.Character.Gun
-                    if gun:FindFirstChild("Shoot") then
-                        gun.Shoot:FireServer(m.Character.HumanoidRootPart.Position)
+                local char = LocalPlayer.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                
+                if m and m.Character and m.Character:FindFirstChild("HumanoidRootPart") and char then
+                    local gun = char:FindFirstChild("Gun") or (LocalPlayer:FindFirstChild("Backpack") and LocalPlayer.Backpack:FindFirstChild("Gun"))
+                    if gun then
+                        -- Достаем пушку из инвентаря если она не в руках
+                        if gun.Parent == LocalPlayer.Backpack and hum then
+                            hum:EquipTool(gun)
+                            task.wait(0.1)
+                        end
+                        
+                        local shootEvent = gun:FindFirstChild("Shoot") or game:GetService("ReplicatedStorage"):FindFirstChild("Shoot", true)
+                        if shootEvent and m.Character:FindFirstChild("HumanoidRootPart") then
+                            shootEvent:FireServer(m.Character.HumanoidRootPart.Position)
+                        end
                     end
                 end
-                task.wait(0.3)
             end
         end)
     else
-        if autoShootLoop then task.cancel(autoShootLoop) end
+        if autoShootLoop then 
+            task.cancel(autoShootLoop) 
+            autoShootLoop = nil
+        end
     end
 end)
 
@@ -746,38 +798,52 @@ mm2Page:AddButton("Kill All (Murderer)", function()
 end)
 
 local autoCoinLoop = nil
-mm2Page:AddToggle("Auto Farm Coins", false, function(state)
+mm2Page:AddToggle("Auto Farm Coins", false, true, function(state)
     if state then
         autoCoinLoop = task.spawn(function()
             while true do
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                task.wait(0.1)
+                local char = LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if root then
                     local coinContainer = nil
                     for _, v in ipairs(Workspace:GetDescendants()) do
-                        if v.Name == "CoinContainer" or v.Name == "CoinServer" or (v.Name == "Coin" and v:IsA("BasePart")) then
-                            if v.Name == "Coin" then coinContainer = v.Parent break end
+                        if v.Name == "CoinContainer" or v.Name == "CoinServer" then
+                            coinContainer = v
+                            break
                         end
                     end
-                    if coinContainer then
-                        for _, coin in ipairs(coinContainer:GetChildren()) do
-                            if coin:IsA("BasePart") and coin.Name == "Coin" and coin.Transparency < 0.9 then
-                                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                    LocalPlayer.Character.HumanoidRootPart.CFrame = coin.CFrame
-                                    task.wait(0.12)
+                    
+                    local coins = coinContainer and coinContainer:GetChildren() or Workspace:GetChildren()
+                    for _, coin in ipairs(coins) do
+                        if not autoCoinLoop then break end
+                        if coin:IsA("BasePart") and (coin.Name == "Coin" or coin.Name == "CoinServer") and coin.Transparency < 0.9 then
+                            local currentRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if currentRoot then
+                                currentRoot.CFrame = coin.CFrame
+                                if coin:FindFirstChild("TouchInterest") then
+                                    firetouchinterest(currentRoot, coin, 0)
+                                    task.wait(0.05)
+                                    firetouchinterest(currentRoot, coin, 1)
                                 end
+                                task.wait(0.12)
                             end
                         end
                     end
                 end
-                task.wait(0.3)
             end
         end)
     else
-        if autoCoinLoop then task.cancel(autoCoinLoop) end
+        if autoCoinLoop then 
+            task.cancel(autoCoinLoop)
+            autoCoinLoop = nil
+        end
     end
 end)
 
 local knifeAuraLoop = nil
-mm2Page:AddToggle("Knife Kill Aura", false, function(state)
+mm2Page:AddToggle("Knife Kill Aura", false, true, function(state)
     if state then
         knifeAuraLoop = task.spawn(function()
             while true do
@@ -796,12 +862,15 @@ mm2Page:AddToggle("Knife Kill Aura", false, function(state)
             end
         end)
     else
-        if knifeAuraLoop then task.cancel(knifeAuraLoop) end
+        if knifeAuraLoop then 
+            task.cancel(knifeAuraLoop) 
+            knifeAuraLoop = nil
+        end
     end
 end)
 
 local autoGunLoop = nil
-mm2Page:AddToggle("Auto Grab Dropped Gun", false, function(state)
+mm2Page:AddToggle("Auto Grab Dropped Gun", false, true, function(state)
     if state then
         autoGunLoop = task.spawn(function()
             while true do
@@ -809,11 +878,14 @@ mm2Page:AddToggle("Auto Grab Dropped Gun", false, function(state)
                 if gunDrop and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     LocalPlayer.Character.HumanoidRootPart.CFrame = gunDrop.CFrame
                 end
-                task.wait(0.5)
+                task.wait(0.3)
             end
         end)
     else
-        if autoGunLoop then task.cancel(autoGunLoop) end
+        if autoGunLoop then 
+            task.cancel(autoGunLoop) 
+            autoGunLoop = nil
+        end
     end
 end)
 
@@ -859,7 +931,7 @@ mm2Page:AddToggle("Spectate Murderer", false, function(state)
 end)
 
 local autoDodgeLoop = nil
-mm2Page:AddToggle("Auto Dodge Murderer", false, function(state)
+mm2Page:AddToggle("Auto Dodge Murderer", false, true, function(state)
     if state then
         autoDodgeLoop = task.spawn(function()
             while true do
@@ -875,7 +947,10 @@ mm2Page:AddToggle("Auto Dodge Murderer", false, function(state)
             end
         end)
     else
-        if autoDodgeLoop then task.cancel(autoDodgeLoop) end
+        if autoDodgeLoop then 
+            task.cancel(autoDodgeLoop)
+            autoDodgeLoop = nil
+        end
     end
 end)
 
@@ -972,7 +1047,7 @@ end)
 
 local sheriffTracerAdornment = nil
 local sheriffTracerConn = nil
-visualsPage:AddToggle("[15] Tracer to Sheriff", false, function(state)
+visualsPage:AddToggle("Tracer to Sheriff", false, function(state)
     if state then
         sheriffTracerAdornment = Instance.new("LineHandleAdornment")
         sheriffTracerAdornment.Name = "SheriffTracer"
@@ -1155,7 +1230,7 @@ end)
 
 local flying = false
 local flySpeed = 60
-movementPage:AddToggle("Fly Mode", false, function(state)
+movementPage:AddToggle("Fly Mode", false, true, function(state)
     flying = state
     if flying then
         task.spawn(function()
@@ -1196,7 +1271,7 @@ end)
 
 local noclip = false
 local noclipConn = nil
-movementPage:AddToggle("Noclip", false, function(state)
+movementPage:AddToggle("Noclip", false, true, function(state)
     noclip = state
     if noclip then
         noclipConn = RunService.Stepped:Connect(function()
@@ -1240,7 +1315,7 @@ movementPage:AddToggle("Infinite Jump", false, function(state)
 end)
 
 local spinConnection = nil
-movementPage:AddToggle("Spinbot", false, function(state)
+movementPage:AddToggle("Spinbot", false, true, function(state)
     if state then
         spinConnection = RunService.RenderStepped:Connect(function()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1258,7 +1333,7 @@ movementPage:AddToggle("Low Gravity (Moon)", false, function(state)
 end)
 
 local fakeLagLoop = nil
-movementPage:AddToggle("Fake Lag / Desync", false, function(state)
+movementPage:AddToggle("Fake Lag / Desync", false, true, function(state)
     if state then
         fakeLagLoop = task.spawn(function()
             while true do
@@ -1323,7 +1398,7 @@ teleportsPage:AddButton("TP Above Map (Safe)", function()
 end)
 
 local clickTpConnection = nil
-teleportsPage:AddToggle("Click TP (Ctrl + Click)", false, function(state)
+teleportsPage:AddToggle("Click TP (Ctrl + Click)", false, true, function(state)
     if state then
         clickTpConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if not gameProcessed and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
@@ -1494,7 +1569,7 @@ miscPage:AddToggle("Chat Spammer", false, function(state)
     if state then
         spammerLoop = task.spawn(function()
             while true do
-                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.1 strictly on top!", "All")
+                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer("ThoriumLib v1.8 strictly on top!", "All")
                 task.wait(3)
             end
         end)
